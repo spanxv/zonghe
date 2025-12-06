@@ -11,5 +11,6 @@
     <h1>SPAN便捷工具箱</h1>
     <a href="pingbao/">屏保</a>
     <a href="bianqian/">便签</a>
+    <a href="jisuanqi/">计算器</a>
 </body>
 </html>
