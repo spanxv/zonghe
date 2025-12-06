@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便签</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #334155;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* 头部样式 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            padding: 18px 28px;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+        }
+
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: -0.3px;
+        }
+
+        .new-note-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 12px 26px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .new-note-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.3);
+        }
+
+        .new-note-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 便签网格布局 - 自适应 */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 28px;
+        }
+
+        /* 便签卡片样式 */
+        .note-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 360px;
+            position: relative;
+            border: 1px solid #f1f5f9;
+        }
+
+        .note-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+            border-color: #e2e8f0;
+        }
+
+        .note-content {
+            flex-grow: 1;
+            padding: 22px;
+            overflow-y: auto;
+            line-height: 1.65;
+            font-size: 16px;
+            color: #334155;
+            background: white;
+            border: none;
+            resize: none;
+            width: 100%;
+            min-height: 240px;
+            font-family: inherit;
+        }
+
+        .note-content:focus {
+            outline: none;
+            background: #fefefe;
+        }
+
+        /* 自定义滚动条 */
+        .note-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .note-content::-webkit-scrollbar-track {
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+
+        .note-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .note-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* 字符计数器 */
+        .char-counter {
+            padding: 6px 22px;
+            font-size: 13px;
+            color: #64748b;
+            text-align: right;
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* 底部操作栏 */
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 22px;
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .note-date {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* 默认按钮样式（带文字） */
+        .action-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 5px 0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .action-btn:hover {
+            color: #6366f1;
+        }
+
+        .action-btn:hover::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: #6366f1;
+        }
+
+        .copy-btn:hover {
+            color: #10b981;
+        }
+
+        .copy-btn:hover::after {
+            background: #10b981;
+        }
+
+        .export-btn:hover {
+            color: #3b82f6;
+        }
+
+        .export-btn:hover::after {
+            background: #3b82f6;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        .delete-btn:hover::after {
+            background: #ef4444;
+        }
+
+        .action-btn i {
+            font-size: 12px;
+        }
+
+        /* 空状态提示 */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #cbd5e1;
+            opacity: 0.7;
+        }
+
+        .empty-state h3 {
+            font-size: 22px;
+            margin-bottom: 12px;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+            color: #64748b;
+        }
+
+        /* 提示信息样式 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #10b981;
+            color: white;
+            padding: 14px 22px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+
+        /* 响应式设计 */
+        /* 大屏幕 */
+        @media (min-width: 1200px) {
+            .notes-grid {
+                grid-template-columns: repeat(4, minmax(320px, 1fr));
+            }
+        }
+        
+        /* 中等屏幕 */
+        @media (max-width: 1199px) and (min-width: 900px) {
+            .notes-grid {
+                grid-template-columns: repeat(3, minmax(300px, 1fr));
+            }
+        }
+        
+        /* 小屏幕 */
+        @media (max-width: 899px) and (min-width: 600px) {
+            .notes-grid {
+                grid-template-columns: repeat(2, minmax(280px, 1fr));
+            }
+        }
+        
+        /* 超小屏幕 */
+        @media (max-width: 599px) {
+            .notes-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            body {
+                padding: 12px;
+            }
+        }
+
+        /* 针对小屏幕的按钮优化 - 只显示图标 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 18px;
+                padding: 18px;
+            }
+            
+            .logo-container {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            /* 在小屏幕上，按钮只显示图标 */
+            .action-btn span {
+                display: none;
+            }
+            
+            .action-btn {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                background: #f1f5f9;
+                justify-content: center;
+                padding: 0;
+            }
+            
+            .action-btn i {
+                font-size: 14px;
+                margin: 0;
+            }
+            
+            .action-btn:hover::after {
+                display: none;
+            }
+            
+            .note-actions {
+                gap: 8px;
+            }
+            
+            .note-footer {
+                padding: 12px 16px;
+            }
+        }
+        
+        /* 超小屏幕进一步优化 */
+        @media (max-width: 480px) {
+            .notes-grid {
+                gap: 16px;
+            }
+            
+            .note-card {
+                height: 320px;
+            }
+            
+            .note-content {
+                padding: 16px;
+                font-size: 15px;
+            }
+            
+            .new-note-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            
+            .title {
+                font-size: 22px;
+            }
+            
+            .logo {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+        }
+        
+        /* 极小屏幕 */
+        @media (max-width: 360px) {
+            .note-footer {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            
+            .note-actions {
+                align-self: flex-end;
+            }
+        }
+
+        /* 便签内容占位符样式 */
+        .note-content::placeholder {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        /* 选中状态 */
+        .note-card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+        }
+        
+        /* 字符数多时的提示 */
+        .char-counter.large-count {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部区域 -->
+        <header class="header">
+            <div class="logo-container">
+                <div class="logo">
+                    <i class="fas fa-sticky-note"></i>
+                </div>
+                <h1 class="title">便签</h1>
+            </div>
+            <button id="newNoteBtn" class="new-note-btn">
+                <i class="fas fa-plus"></i>
+                新建便签
+            </button>
+        </header>
+
+        <!-- 便签网格区域 -->
+        <main id="notesContainer" class="notes-grid">
+            <!-- 便签卡片将通过JavaScript动态生成 -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">
+                    <i class="fas fa-clipboard"></i>
+                </div>
+                <h3>还没有任何便签</h3>
+                <p>点击右上角的"新建便签"按钮创建您的第一个便签。您可以输入任意长度的内容，系统会自动保存您的便签。</p>
+            </div>
+        </main>
+
+        <!-- 提示信息 -->
+        <div id="toast" class="toast">
+            <i class="fas fa-check-circle"></i>
+            <span id="toastMessage">操作成功</span>
+        </div>
+    </div>
+
+    <script>
+        // 便签管理应用
+        class NotesApp {
+            constructor() {
+                this.notes = JSON.parse(localStorage.getItem('notes')) || [];
+                this.nextId = this.notes.length > 0 ? Math.max(...this.notes.map(note => note.id)) + 1 : 1;
+                this.init();
+            }
+
+            // 初始化应用
+            init() {
+                this.bindEvents();
+                this.renderNotes();
+                // 添加窗口大小变化监听器，以便实时响应
+                window.addEventListener('resize', () => this.handleResize());
+            }
+
+            // 绑定事件
+            bindEvents() {
+                document.getElementById('newNoteBtn').addEventListener('click', () => this.createNote());
+                
+                // 监听键盘事件，支持回车保存
+                document.addEventListener('keydown', (e) => {
+                    // 如果焦点在textarea上且按下了Ctrl+Enter，则保存
+                    if (e.target.classList.contains('note-content') && e.ctrlKey && e.key === 'Enter') {
+                        this.saveNoteContent(e.target);
+                    }
+                });
+            }
+
+            // 处理窗口大小变化
+            handleResize() {
+                // 当窗口大小变化时，我们可以重新计算布局
+                // 这里主要是CSS媒体查询处理，但我们可以根据需要添加一些JS逻辑
+                // 例如，更新字符计数器的显示
+                document.querySelectorAll('.note-content').forEach(textarea => {
+                    this.updateCharCounter(textarea);
+                });
+            }
+
+            // 创建新便签
+            createNote() {
+                const newNote = {
+                    id: this.nextId++,
+                    content: '',
+                    date: this.getCurrentDate(),
+                    timestamp: Date.now()
+                };
+
+                this.notes.unshift(newNote); // 添加到开头
+                this.saveToLocalStorage();
+                this.renderNotes();
+                this.showToast('新便签已创建');
+                
+                // 聚焦到新便签的文本区域
+                setTimeout(() => {
+                    const newTextarea = document.querySelector(`.note-card[data-id="${newNote.id}"] .note-content`);
+                    if (newTextarea) newTextarea.focus();
+                }, 100);
+            }
+
+            // 保存便签内容
+            saveNoteContent(textarea) {
+                const noteId = parseInt(textarea.closest('.note-card').dataset.id);
+                const noteIndex = this.notes.findIndex(note => note.id === noteId);
+                
+                if (noteIndex !== -1) {
+                    this.notes[noteIndex].content = textarea.value;
+                    this.notes[noteIndex].timestamp = Date.now(); // 更新时间戳用于排序
+                    this.notes[noteIndex].date = this.getCurrentDate(); // 更新日期
+                    this.saveToLocalStorage();
+                    
+                    // 更新字符计数器
+                    this.updateCharCounter(textarea);
+                    
+                    // 更新日期显示
+                    const dateElement = textarea.closest('.note-card').querySelector('.note-date');
+                    if (dateElement) {
+                        dateElement.textContent = this.notes[noteIndex].date;
+                    }
+                    
+                    // 显示保存提示
+                    this.showToast('便签已保存');
+                }
+            }
+
+            // 更新字符计数器
+            updateCharCounter(textarea) {
+                const counter = textarea.nextElementSibling;
+                const charCount = textarea.value.length;
+                
+                // 不再限制字符数，只显示计数
+                counter.textContent = `${charCount} 字符`;
+                
+                // 当字符数超过1000时，添加特殊样式提示
+                if (charCount > 1000) {
+                    counter.classList.add('large-count');
+                } else {
+                    counter.classList.remove('large-count');
+                }
+            }
+
+            // 复制便签内容
+            copyNoteContent(noteId) {
+                const note = this.notes.find(note => note.id === noteId);
+                if (!note) return;
+                
+                navigator.clipboard.writeText(note.content)
+                    .then(() => this.showToast('便签内容已复制到剪贴板'))
+                    .catch(() => {
+                        // 如果clipboard API失败，使用备用方法
+                        const textArea = document.createElement('textarea');
+                        textArea.value = note.content;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        this.showToast('便签内容已复制到剪贴板');
+                    });
+            }
+
+            // 导出便签内容为TXT文件
+            exportNoteContent(noteId) {
+                const note = this.notes.find(note => note.id === noteId);
+                if (!note) return;
+                
+                const content = note.content || '空便签';
+                const dateStr = note.date.replace(/[\/\s:]/g, '-');
+                const filename = `便签-${dateStr}.txt`;
+                
+                const element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+                element.setAttribute('download', filename);
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+                
+                this.showToast('便签已导出为TXT文件');
+            }
+
+            // 删除便签
+            deleteNote(noteId) {
+                if (!confirm('确定要删除这个便签吗？此操作无法撤销。')) {
+                    return;
+                }
+                
+                this.notes = this.notes.filter(note => note.id !== noteId);
+                this.saveToLocalStorage();
+                this.renderNotes();
+                this.showToast('便签已删除');
+            }
+
+            // 保存到本地存储
+            saveToLocalStorage() {
+                localStorage.setItem('notes', JSON.stringify(this.notes));
+            }
+
+            // 渲染所有便签
+            renderNotes() {
+                const container = document.getElementById('notesContainer');
+                const emptyState = document.getElementById('emptyState');
+                
+                // 按时间戳排序（最新的在前）
+                this.notes.sort((a, b) => b.timestamp - a.timestamp);
+                
+                // 清空容器（除了空状态）
+                const elementsToRemove = Array.from(container.children).filter(child => child !== emptyState);
+                elementsToRemove.forEach(child => child.remove());
+                
+                // 如果没有便签，显示空状态
+                if (this.notes.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                // 隐藏空状态
+                emptyState.style.display = 'none';
+                
+                // 渲染每个便签
+                this.notes.forEach(note => {
+                    const noteElement = this.createNoteElement(note);
+                    container.insertBefore(noteElement, emptyState);
+                });
+            }
+
+            // 创建单个便签元素
+            createNoteElement(note) {
+                const charCount = note.content.length;
+                
+                // 创建便签卡片
+                const noteCard = document.createElement('div');
+                noteCard.className = 'note-card';
+                noteCard.dataset.id = note.id;
+                
+                // 创建便签内容
+                noteCard.innerHTML = `
+                    <textarea class="note-content" placeholder="在此输入便签内容...">${note.content}</textarea>
+                    <div class="char-counter ${charCount > 1000 ? 'large-count' : ''}">${charCount} 字符</div>
+                    <div class="note-footer">
+                        <div class="note-date">${note.date}</div>
+                        <div class="note-actions">
+                            <button class="action-btn copy-btn" title="复制内容">
+                                <i class="fas fa-copy"></i><span> 复制</span>
+                            </button>
+                            <button class="action-btn export-btn" title="导出为TXT">
+                                <i class="fas fa-file-export"></i><span> 导出</span>
+                            </button>
+                            <button class="action-btn delete-btn" title="删除便签">
+                                <i class="fas fa-trash"></i><span> 删除</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // 绑定事件
+                const textarea = noteCard.querySelector('.note-content');
+                const copyBtn = noteCard.querySelector('.copy-btn');
+                const exportBtn = noteCard.querySelector('.export-btn');
+                const deleteBtn = noteCard.querySelector('.delete-btn');
+                
+                // 自动保存（输入时防抖）
+                let saveTimeout;
+                textarea.addEventListener('input', () => {
+                    clearTimeout(saveTimeout);
+                    this.updateCharCounter(textarea);
+                    
+                    // 防抖保存，500ms后自动保存
+                    saveTimeout = setTimeout(() => {
+                        this.saveNoteContent(textarea);
+                    }, 500);
+                });
+                
+                // 失去焦点时保存
+                textarea.addEventListener('blur', () => {
+                    this.saveNoteContent(textarea);
+                });
+                
+                // 点击卡片时添加选中效果
+                noteCard.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('action-btn')) {
+                        noteCard.classList.add('selected');
+                        // 移除其他卡片的选中状态
+                        document.querySelectorAll('.note-card.selected').forEach(card => {
+                            if (card !== noteCard) card.classList.remove('selected');
+                        });
+                    }
+                });
+                
+                // 按钮事件
+                copyBtn.addEventListener('click', () => this.copyNoteContent(note.id));
+                exportBtn.addEventListener('click', () => this.exportNoteContent(note.id));
+                deleteBtn.addEventListener('click', () => this.deleteNote(note.id));
+                
+                return noteCard;
+            }
+
+            // 显示提示信息
+            showToast(message, isError = false) {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                
+                toastMessage.textContent = message;
+                toast.className = `toast ${isError ? 'error' : ''}`;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            // 获取当前日期字符串
+            getCurrentDate() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                
+                return `${year}/${month}/${day} ${hours}:${minutes}`;
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new NotesApp();
+        });
+    </script>
+</body>
+</html>
