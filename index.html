@@ -1,0 +1,3206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPAN屏幕保护</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased; /* 字体平滑 */
+            -moz-osx-font-smoothing: grayscale; /* 字体平滑 */
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            /* 防止移动端滚动 */
+            overscroll-behavior: none;
+            touch-action: manipulation;
+            -webkit-overflow-scrolling: auto; /* 禁用惯性滚动 */
+        }
+
+        /* 动画背景容器 */
+        .background {
+            position: fixed; /* 改为fixed确保不会移动 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            /* 硬件加速 */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        /* 动画背景样式 */
+        .bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            /* 硬件加速 */
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            will-change: transform, opacity;
+        }
+
+        .active-bg {
+            display: block;
+        }
+
+        /* UI层 - 与动画层完全分离 */
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+            /* 硬件加速 - 防止抖动 */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: transform;
+            /* 防止UI元素被动画影响 */
+            isolation: isolate;
+        }
+
+        /* 城市烟花 */
+        #city-fireworks {
+            background: #000;
+        }
+
+        .firework-trail {
+            position: absolute;
+            height: 2px;
+            transform-origin: left center;
+            pointer-events: none;
+        }
+
+        .firework-explosion {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* 星际穿越 */
+        #space-travel {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .space-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            transform-origin: center;
+            background: #ffffff !important;
+            box-shadow: 0 0 8px #ffffff, 0 0 15px rgba(255, 255, 255, 0.7) !important;
+        }
+
+        /* 樱花飘落 */
+        #cherry-blossom {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .sakura {
+            position: absolute;
+            color: #ffb7c5;
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        /* 数字雨 */
+        #matrix-rain {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .matrix-digit {
+            position: absolute;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        .matrix-splash {
+            position: absolute;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            transform-origin: center;
+        }
+
+        /* 数据流 */
+        #data-stream {
+            background: #000;
+        }
+
+        .data-node {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            background: #00f7ff;
+            box-shadow: 0 0 20px #00f7ff, 0 0 40px rgba(0, 247, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .data-connection {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00f7ff, #00ff80, transparent);
+            pointer-events: none;
+            filter: blur(1px);
+        }
+
+        .data-bit {
+            position: absolute;
+            color: #00ff80;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 0 10px #00ff80;
+        }
+
+        /* 几何线条 */
+        #geometric-lines {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .geo-line {
+            position: absolute;
+            height: 1px;
+            background: currentColor;
+            transform-origin: left center;
+            pointer-events: none;
+            filter: blur(0.5px);
+        }
+
+        .geo-dot {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 20px currentColor;
+            pointer-events: none;
+        }
+
+        /* 丝带 */
+        #ribbons {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .ribbon {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.7;
+            filter: blur(0.8px);
+            border-radius: 1px;
+        }
+
+        /* 粒子旋转 */
+        #particle-vortex {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .vortex-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .vortex-center {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff00ff, transparent);
+            box-shadow: 0 0 40px #ff00ff;
+            pointer-events: none;
+        }
+
+        /* 梦幻光影 */
+        #dream-light {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .light-beam {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(80px);
+            opacity: 0.6;
+            mix-blend-mode: screen;
+        }
+
+        /* 量子涟漪动画 */
+        #quantum-ripple {
+            background: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .ripple-circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid;
+            pointer-events: none;
+            transform-origin: center;
+            background: radial-gradient(circle, transparent 30%, currentColor 100%);
+            opacity: 0;
+            filter: blur(1px);
+        }
+
+        .ripple-center {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff, #00f7ff, #ff00ff);
+            box-shadow: 0 0 40px #ffffff;
+            pointer-events: none;
+            animation: centerPulse 3s infinite;
+        }
+
+        @keyframes centerPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+
+        /* 主界面 */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            padding: 20px;
+            position: relative;
+            pointer-events: auto;
+            /* 防止UI抖动 */
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: transform;
+        }
+
+        /* 时间显示 */
+        .time-container {
+            margin-bottom: 25px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .time-display {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px #00f7ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .time-unit {
+            background: rgba(0, 20, 40, 0.4);
+            padding: 20px 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 247, 255, 0.3);
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            min-width: 120px;
+            transition: all 0.3s ease;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .time-unit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 247, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .time-unit:hover::before {
+            left: 100%;
+        }
+
+        .time-number {
+            font-size: 5rem;
+            line-height: 1;
+            background: linear-gradient(135deg, #00f7ff, #ff00ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(0, 247, 255, 0.7);
+        }
+
+        .time-separator {
+            font-size: 4.5rem;
+            color: #00f7ff;
+            margin: 0 8px;
+            text-shadow: 0 0 20px #00f7ff;
+        }
+
+        /* 日期和星期显示 */
+        .date-container {
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .date-display {
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .date-week-unit {
+            background: rgba(20, 0, 40, 0.4);
+            padding: 15px 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 0, 255, 0.3);
+            backdrop-filter: blur(15px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-width: 550px;
+            height: 100px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .date-week-unit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .date-week-unit:hover::before {
+            left: 100%;
+        }
+
+        .date-week-unit:hover {
+            transform: translateY(-3px) translateZ(0);
+            box-shadow: 0 10px 25px rgba(255, 0, 255, 0.3);
+        }
+
+        .date-text, .week-text {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff00ff, #00f7ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+
+        /* 挂机留言 */
+        .away-message {
+            font-size: 1.5rem;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: rgba(20, 20, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+            word-wrap: break-word;
+            margin-left: auto;
+            margin-right: auto;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .away-message.show {
+            display: block;
+        }
+
+        /* 按钮样式 */
+        .button-container {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .btn {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            padding: 16px 45px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .btn i {
+            font-size: 1.4rem;
+        }
+
+        .btn-animation {
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.8), rgba(0, 255, 255, 0.8));
+            color: white;
+            border: 1px solid rgba(0, 128, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 128, 255, 0.3);
+        }
+
+        .btn-animation:hover {
+            transform: translateY(-3px) scale(1.05) translateZ(0);
+            box-shadow: 0 10px 30px rgba(0, 128, 255, 0.5);
+        }
+
+        .btn-hangup {
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.8), rgba(255, 140, 0, 0.8));
+            color: white;
+            border: 1px solid rgba(255, 0, 128, 0.3);
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.3);
+        }
+
+        .btn-hangup:hover {
+            transform: translateY(-3px) scale(1.05) translateZ(0);
+            box-shadow: 0 10px 30px rgba(255, 0, 128, 0.5);
+        }
+
+        /* 解锁区域 */
+        .unlock-section {
+            margin-top: 15px;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            display: none;
+            margin-left: auto;
+            margin-right: auto;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .unlock-buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .unlock-input-group {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-top: 0;
+            align-items: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .unlock-password-input {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(0, 20, 40, 0.4);
+            border: 1px solid rgba(0, 247, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2rem;
+            font-family: 'Exo 2', sans-serif;
+            backdrop-filter: blur(10px);
+            height: 54px;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .unlock-password-input:focus {
+            outline: none;
+            border-color: #00f7ff;
+            box-shadow: 0 0 20px rgba(0, 247, 255, 0.5);
+        }
+
+        .btn-unlock {
+            background: linear-gradient(135deg, rgba(0, 255, 128, 0.8), rgba(0, 128, 255, 0.8));
+            color: white;
+            border: 1px solid rgba(0, 255, 128, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 128, 0.3);
+            position: relative;
+            padding: 15px 25px;
+            width: auto;
+            min-width: 120px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .btn-unlock:hover {
+            transform: translateY(-3px) scale(1.05) translateZ(0);
+            box-shadow: 0 10px 30px rgba(0, 255, 128, 0.5);
+        }
+
+        .btn-cancel-unlock {
+            background: linear-gradient(135deg, rgba(255, 100, 0, 0.8), rgba(255, 200, 0, 0.8));
+            color: white;
+            border: 1px solid rgba(255, 100, 0, 0.3);
+            box-shadow: 0 0 20px rgba(255, 100, 0, 0.3);
+            min-width: 120px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        /* 解锁按钮锁定状态 */
+        .btn-unlock.locked {
+            animation: pulse 2s infinite;
+            cursor: pointer;
+            margin-top: 0;
+            min-width: 280px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1) translateZ(0); }
+            50% { transform: scale(1.05) translateZ(0); }
+            100% { transform: scale(1) translateZ(0); }
+        }
+
+        /* 动画选择面板 - 修复隐藏问题 */
+        .animation-selector {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120%); /* 初始完全隐藏在屏幕外 */
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: rgba(10, 10, 30, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 100, 255, 0.3);
+            border-radius: 15px;
+            z-index: 1000;
+            flex-wrap: wrap;
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.8);
+            max-width: 90%;
+            min-width: 300px;
+            width: auto;
+            visibility: hidden; /* 初始不可见 */
+            opacity: 0; /* 初始透明 */
+        }
+
+        /* 大屏端提升高度 */
+        @media (min-width: 1024px) {
+            .animation-selector {
+                bottom: 60px; /* 提升高度 */
+            }
+        }
+
+        .animation-selector.show {
+            transform: translateX(-50%) translateY(0);
+            visibility: visible; /* 显示时可见 */
+            opacity: 1; /* 显示时不透明 */
+        }
+
+        .animation-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid #333;
+            transition: all 0.2s ease;
+            position: relative;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate3d(0, 0, 0); /* 防止抖动 */
+        }
+
+        .animation-thumb:hover {
+            transform: translateY(-3px) translateZ(0);
+            border-color: #00f7ff;
+            box-shadow: 
+                0 6px 12px rgba(0, 0, 0, 0.7),
+                0 0 15px rgba(0, 247, 255, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .animation-thumb.active {
+            border-color: #ff00ff;
+            transform: translateY(-1px) translateZ(0);
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.6),
+                0 0 20px rgba(255, 0, 255, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .thumb-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 8px currentColor;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        /* 挂机弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            display: none;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(10, 10, 40, 0.95), rgba(26, 26, 60, 0.95));
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 247, 255, 0.4);
+            box-shadow: 0 0 40px rgba(0, 247, 255, 0.4);
+            width: 90%;
+            max-width: 480px;
+            color: white;
+            backdrop-filter: blur(25px);
+            position: relative;
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 0, 128, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 0, 128, 0.7);
+            transform: scale(1.1);
+        }
+
+        .modal-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #00f7ff;
+            text-shadow: 0 0 15px #00f7ff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ddd;
+            font-size: 1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 18px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 247, 255, 0.4);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            font-family: 'Exo 2', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #00f7ff;
+            box-shadow: 0 0 15px rgba(0, 247, 255, 0.6);
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-top: 6px;
+        }
+
+        .char-counter.warning {
+            color: #ff9900;
+        }
+
+        .char-counter.error {
+            color: #ff5555;
+        }
+
+        /* 快捷选项 */
+        .quick-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .quick-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 247, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-option:hover {
+            background: rgba(0, 247, 255, 0.1);
+            border-color: rgba(0, 247, 255, 0.4);
+        }
+
+        .quick-option input[type="radio"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .quick-option label {
+            flex: 1;
+            cursor: pointer;
+            color: #ddd;
+            font-size: 0.95rem;
+        }
+
+        /* 挂机设置弹窗按钮 */
+        .modal-buttons {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            margin-top: 25px;
+            gap: 15px;
+        }
+
+        .btn-modal {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(200, 200, 200, 0.15));
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            flex: 1;
+            max-width: 40%;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.8), rgba(255, 140, 0, 0.8));
+            color: white;
+            border: 1px solid rgba(255, 0, 128, 0.4);
+            flex: 2;
+        }
+
+        .btn-cancel:hover, .btn-start:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 全屏锁定样式 */
+        body.locked {
+            cursor: none !important;
+            /* 锁定状态下进一步优化防止抖动 */
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .locked .animation-selector {
+            display: none !important;
+        }
+
+        /* 鼠标限制区域 */
+        .mouse-limit {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: transparent;
+            z-index: 9999;
+            display: none;
+        }
+
+        .locked .mouse-limit {
+            display: block;
+        }
+
+        /* 顶部全屏退出防护 */
+        .fullscreen-guard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: transparent;
+            z-index: 10000;
+            display: none;
+        }
+
+        .locked .fullscreen-guard {
+            display: block;
+        }
+
+        /* 性能优化：移动端减少动画元素 */
+        @media (max-width: 768px) {
+            .space-particle {
+                width: 1px !important;
+                height: 1px !important;
+            }
+            
+            .vortex-particle {
+                width: 2px !important;
+                height: 2px !important;
+            }
+            
+            .light-beam {
+                width: 150px !important;
+                height: 150px !important;
+                filter: blur(40px) !important;
+            }
+            
+            .geo-dot {
+                width: 3px !important;
+                height: 3px !important;
+            }
+            
+            .data-node {
+                width: 5px !important;
+                height: 5px !important;
+            }
+            
+            .ripple-circle {
+                border-width: 0.5px !important;
+            }
+            
+            /* 移动端进一步优化防止抖动 */
+            .container {
+                transform: none !important;
+                -webkit-transform: none !important;
+            }
+            
+            .time-unit, .date-week-unit, .btn, .away-message, .unlock-section {
+                transform: none !important;
+                -webkit-transform: none !important;
+            }
+            
+            /* 移动端禁用部分动画效果以减少抖动 */
+            .time-unit::before, .date-week-unit::before {
+                display: none;
+            }
+            
+            .btn:hover, .time-unit:hover, .date-week-unit:hover {
+                transform: none !important;
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .time-number {
+                font-size: 4rem;
+            }
+            
+            .time-separator {
+                font-size: 3.5rem;
+            }
+            
+            .time-unit {
+                min-width: 110px;
+                padding: 18px 25px;
+                height: 130px;
+            }
+            
+            .date-text, .week-text {
+                font-size: 1.9rem;
+            }
+            
+            .date-week-unit {
+                padding: 12px 25px;
+                height: 90px;
+                min-width: 500px;
+            }
+            
+            .date-container, .button-container, .away-message, .unlock-section {
+                max-width: 550px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            /* 移动端时间显示 */
+            .time-display {
+                flex-wrap: nowrap;
+                justify-content: center;
+                gap: 8px;
+                transform: scale(0.85);
+                transform-origin: center;
+            }
+            
+            .time-number {
+                font-size: 3.5rem;
+            }
+            
+            .time-separator {
+                font-size: 3rem;
+            }
+            
+            .time-unit {
+                min-width: 90px;
+                padding: 15px 20px;
+                height: 110px;
+            }
+            
+            /* 移动端日期和星期 */
+            .date-week-unit {
+                flex-direction: row;
+                gap: 15px;
+                transform: scale(0.85);
+                transform-origin: center;
+                min-width: 400px;
+                height: 80px;
+                padding: 10px 20px;
+            }
+            
+            .date-text, .week-text {
+                font-size: 1.7rem;
+                line-height: 1.1;
+            }
+            
+            /* 移动端按钮变成两排 */
+            .button-container {
+                flex-direction: column;
+                gap: 15px;
+                max-width: 350px;
+            }
+            
+            .btn {
+                padding: 14px 35px;
+                font-size: 1.2rem;
+                width: 100%;
+                max-width: 300px;
+                min-width: 280px;
+            }
+            
+            /* 动画选择器 */
+            .animation-thumb {
+                width: 45px;
+                height: 45px;
+            }
+            
+            .thumb-content {
+                font-size: 1.3rem;
+            }
+            
+            /* 移动端留言框 */
+            .away-message {
+                max-width: 300px;
+                font-size: 1.3rem;
+                transform: scale(0.9);
+                transform-origin: center;
+                margin-top: 10px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            /* 移动端解锁区域 */
+            .unlock-section {
+                max-width: 300px;
+                flex-direction: column;
+                align-items: center;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .unlock-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .btn-unlock.locked {
+                min-width: 280px;
+                width: 100%;
+                max-width: 300px;
+                padding: 14px 30px;
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+            }
+            
+            .unlock-input-group {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+                gap: 10px;
+            }
+            
+            .unlock-password-input, .btn-cancel-unlock, .btn-unlock:not(.locked) {
+                width: 100%;
+                max-width: 300px;
+                height: 50px;
+            }
+            
+            #confirm-unlock {
+                width: 100%;
+            }
+            
+            /* 动画选择器在移动端 */
+            .animation-selector {
+                padding: 12px;
+                gap: 8px;
+                z-index: 10000;
+                background: rgba(0, 0, 0, 0.98);
+                max-width: 95%;
+                min-width: 280px;
+                bottom: 15px;
+            }
+            
+            .animation-thumb {
+                width: 42px;
+                height: 42px;
+            }
+            
+            /* 挂机设置弹窗 */
+            .modal-content {
+                padding: 20px;
+                width: 95%;
+                max-width: 350px;
+            }
+            
+            /* 挂机设置弹窗按钮 */
+            .modal-buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .btn-cancel, .btn-start {
+                max-width: 100%;
+                width: 100%;
+                padding: 12px;
+            }
+            
+            /* 挂机状态下移动端布局 */
+            body.locked .container {
+                align-items: center;
+            }
+            
+            body.locked .time-display {
+                transform: scale(0.85);
+            }
+            
+            body.locked .date-week-unit {
+                transform: scale(0.85);
+                margin-bottom: 10px;
+            }
+            
+            body.locked .away-message {
+                transform: scale(0.9);
+                margin: 10px auto;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            body.locked .unlock-section {
+                width: 100%;
+                max-width: 300px;
+                align-items: center;
+                margin: 0 auto;
+            }
+            
+            body.locked .unlock-buttons {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            body.locked .btn-unlock.locked {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            body.locked .unlock-input-group {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* 更小屏幕进一步缩小 */
+            .time-display {
+                transform: scale(0.75);
+            }
+            
+            .time-number {
+                font-size: 2.8rem;
+            }
+            
+            .time-separator {
+                font-size: 2.4rem;
+            }
+            
+            .time-unit {
+                min-width: 75px;
+                padding: 10px 15px;
+                height: 90px;
+            }
+            
+            .date-week-unit {
+                transform: scale(0.75);
+                min-width: 320px;
+                height: 70px;
+                padding: 8px 15px;
+                gap: 10px;
+            }
+            
+            .date-text, .week-text {
+                font-size: 1.5rem;
+            }
+            
+            .button-container {
+                max-width: 280px;
+            }
+            
+            .btn {
+                padding: 12px 30px;
+                font-size: 1.1rem;
+                max-width: 280px;
+                min-width: 250px;
+            }
+            
+            .away-message {
+                max-width: 280px;
+                transform: scale(0.85);
+                font-size: 1.2rem;
+            }
+            
+            .unlock-section {
+                max-width: 280px;
+            }
+            
+            .btn-unlock.locked {
+                min-width: 250px;
+                max-width: 280px;
+            }
+            
+            .unlock-input-group {
+                max-width: 280px;
+            }
+            
+            .unlock-password-input, .btn-cancel-unlock, .btn-unlock:not(.locked) {
+                max-width: 280px;
+            }
+            
+            .animation-thumb {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .thumb-content {
+                font-size: 1.1rem;
+            }
+            
+            /* 挂机状态下小屏幕布局 */
+            body.locked .time-display {
+                transform: scale(0.75);
+            }
+            
+            body.locked .date-week-unit {
+                transform: scale(0.75);
+                min-width: 280px;
+            }
+            
+            body.locked .away-message {
+                max-width: 280px;
+                transform: scale(0.85);
+            }
+            
+            body.locked .unlock-section {
+                max-width: 280px;
+            }
+            
+            body.locked .btn-unlock.locked {
+                max-width: 280px;
+            }
+            
+            body.locked .unlock-input-group {
+                max-width: 280px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .time-number {
+                font-size: 3.2rem;
+            }
+            
+            .time-unit {
+                min-width: 90px;
+                padding: 10px 15px;
+                height: 90px;
+            }
+            
+            .date-text, .week-text {
+                font-size: 1.4rem;
+            }
+            
+            .date-week-unit {
+                height: 75px;
+                padding: 10px 20px;
+            }
+            
+            .button-container {
+                margin-top: 15px;
+            }
+            
+            .animation-selector {
+                padding: 12px;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 鼠标限制区域 -->
+    <div class="mouse-limit"></div>
+    <!-- 顶部全屏退出防护 -->
+    <div class="fullscreen-guard"></div>
+    
+    <!-- 动画背景容器 -->
+    <div class="background">
+        <div id="city-fireworks" class="bg-animation active-bg"></div>
+        <div id="space-travel" class="bg-animation"></div>
+        <div id="cherry-blossom" class="bg-animation"></div>
+        <div id="matrix-rain" class="bg-animation"></div>
+        <div id="data-stream" class="bg-animation"></div>
+        <div id="geometric-lines" class="bg-animation"></div>
+        <div id="ribbons" class="bg-animation"></div>
+        <div id="particle-vortex" class="bg-animation"></div>
+        <div id="dream-light" class="bg-animation"></div>
+        <div id="quantum-ripple" class="bg-animation"></div>
+    </div>
+
+    <!-- UI层 - 与动画层分离防止抖动 -->
+    <div class="ui-layer">
+        <div class="container">
+            <!-- 时间显示 -->
+            <div class="time-container" id="time-container">
+                <div class="time-display">
+                    <div class="time-unit">
+                        <div class="time-number" id="hours">00</div>
+                    </div>
+                    <div class="time-separator">:</div>
+                    <div class="time-unit">
+                        <div class="time-number" id="minutes">00</div>
+                    </div>
+                    <div class="time-separator">:</div>
+                    <div class="time-unit">
+                        <div class="time-number" id="seconds">00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日期和星期显示 -->
+            <div class="date-container" id="date-container">
+                <div class="date-display">
+                    <div class="date-week-unit" id="date-week-unit">
+                        <div class="date-text" id="date">2023年1月1日</div>
+                        <div class="week-text" id="week">星期日</div>
+                    </div>
+                </div>
+                <!-- 挂机留言显示区域 -->
+                <div class="away-message" id="away-message"></div>
+                
+                <!-- 解锁区域 -->
+                <div class="unlock-section" id="unlock-section">
+                    <div class="unlock-buttons">
+                        <button class="btn btn-unlock locked" id="unlock-btn">挂机中，点我解锁！</button>
+                    </div>
+                    <div class="unlock-input-group" id="unlock-input-group" style="display: none;">
+                        <input type="password" class="unlock-password-input" id="unlock-password" placeholder="输入解锁密码" maxlength="8">
+                        <button class="btn btn-cancel-unlock" id="cancel-unlock-btn">取消</button>
+                        <button class="btn btn-unlock" id="confirm-unlock">解锁</button>
+                    </div>
+                    <p id="unlock-error" style="color: #ff5555; margin-top: 10px; display: none;">密码错误，请重试</p>
+                </div>
+            </div>
+
+            <!-- 按钮区域 -->
+            <div class="button-container">
+                <button class="btn btn-animation" id="animation-btn">
+                    <i class="fas fa-play-circle"></i>
+                    动画
+                </button>
+                <button class="btn btn-hangup" id="hangup-btn">
+                    <i class="fas fa-user-clock"></i>
+                    挂机
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 动画选择面板 - 修复隐藏问题 -->
+    <div class="animation-selector" id="animation-selector">
+        <!-- 缩略图通过JS动态生成 -->
+    </div>
+
+    <!-- 挂机设置弹窗 -->
+    <div class="modal-overlay" id="hangup-modal">
+        <div class="modal-content">
+            <div class="modal-close" id="close-hangup-modal">×</div>
+            <h2 class="modal-title">挂机设置</h2>
+            <div class="form-group">
+                <label class="form-label" for="hangup-password">挂机密码 (4-8位数字或字母)</label>
+                <input type="password" id="hangup-password" class="form-input" placeholder="请输入数字或字母密码" maxlength="8">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="hangup-message">挂机留言 (可选, 最多30字)</label>
+                <input type="text" id="hangup-message" class="form-input" placeholder="请输入挂机留言" maxlength="30">
+                <div class="char-counter" id="char-counter">0/30</div>
+                
+                <!-- 快捷选项 -->
+                <div class="quick-options">
+                    <div class="quick-option">
+                        <input type="radio" id="quick-option1" name="quick-option" value="临时有事，请勿动！">
+                        <label for="quick-option1">临时有事，请勿动！</label>
+                    </div>
+                    <div class="quick-option">
+                        <input type="radio" id="quick-option2" name="quick-option" value="机器正在工作，请不要触碰！">
+                        <label for="quick-option2">机器正在工作，请不要触碰！</label>
+                    </div>
+                    <div class="quick-option">
+                        <input type="radio" id="quick-option3" name="quick-option" value="如需用机，请先联系！">
+                        <label for="quick-option3">如需用机，请先联系！</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-cancel" id="cancel-hangup">取消</button>
+                <button class="btn-modal btn-start" id="start-hangup">开始挂机</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentAnimation = 0;
+        let isLocked = false;
+        let hangupPassword = "";
+        let hangupMessage = "";
+        let animationIntervals = [];
+        let animationElements = [];
+        let hideSelectorTimeout = null;
+        let lastUpdateTime = 0;
+        let isShowingUnlockInput = false;
+        let animationFrameId = null;
+        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let isLowPerformanceMode = false;
+        
+        // 动画配置
+        const animations = [
+            { id: "city-fireworks", name: "S", color: "#ff0080", create: createCityFireworks },
+            { id: "space-travel", name: "P", color: "#00f7ff", create: createSpaceTravel },
+            { id: "cherry-blossom", name: "A", color: "#ffb7c5", create: createCherryBlossom },
+            { id: "matrix-rain", name: "N", color: "#0f0", create: createMatrixRain },
+            { id: "data-stream", name: "屏", color: "#00f7ff", create: createDataStream },
+            { id: "geometric-lines", name: "幕", color: "#ff00ff", create: createGeometricLines },
+            { id: "ribbons", name: "保", color: "#ffff00", create: createRibbons },
+            { id: "particle-vortex", name: "护", color: "#ff00ff", create: createParticleVortex },
+            { id: "dream-light", name: "程", color: "#ff66cc", create: createDreamLight },
+            { id: "quantum-ripple", name: "序", color: "#ffffff", create: createQuantumRipple }
+        ];
+
+        // 初始化函数
+        function init() {
+            // 检测性能模式
+            detectPerformanceMode();
+            
+            // 时间更新
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // 加载记忆的动画
+            loadAnimationMemory();
+            
+            // 初始化动画选择器
+            setTimeout(() => {
+                initAnimationSelector();
+                initAnimation(currentAnimation);
+            }, 100);
+            
+            // 绑定事件
+            bindEvents();
+            
+            // 检查是否已经锁定
+            checkLockState();
+            
+            // 添加语音相关事件
+            document.getElementById('away-message').addEventListener('click', speakAwayMessage);
+            document.getElementById('date-week-unit').addEventListener('click', speakDate);
+            
+            // 设置动画选择器隐藏定时器为15秒
+            setupSelectorAutoHide();
+            
+            // 移动端优化：防止页面滚动
+            if (isMobile) {
+                preventMobileScroll();
+            }
+        }
+
+        // 防止移动端滚动
+        function preventMobileScroll() {
+            document.addEventListener('touchmove', function(e) {
+                if (!e.target.classList.contains('unlock-password-input') && 
+                    !e.target.classList.contains('form-input')) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // 防止双击缩放
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(e) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, { passive: false });
+        }
+
+        // 检测性能模式
+        function detectPerformanceMode() {
+            if (isMobile) {
+                isLowPerformanceMode = true;
+            }
+        }
+
+        // 加载记忆的动画
+        function loadAnimationMemory() {
+            const savedAnimation = localStorage.getItem('currentAnimation');
+            if (savedAnimation !== null) {
+                currentAnimation = parseInt(savedAnimation);
+                setTimeout(() => {
+                    switchAnimation(currentAnimation);
+                }, 50);
+            } else {
+                switchAnimation(0);
+                saveAnimationMemory(0);
+            }
+        }
+
+        // 保存动画选择
+        function saveAnimationMemory(index) {
+            localStorage.setItem('currentAnimation', index.toString());
+        }
+
+        // 更新时间和日期
+        function updateTime() {
+            const now = new Date();
+            const currentTime = now.getTime();
+            
+            if (currentTime - lastUpdateTime < 900) return;
+            lastUpdateTime = currentTime;
+            
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            
+            document.getElementById('hours').textContent = hours;
+            document.getElementById('minutes').textContent = minutes;
+            document.getElementById('seconds').textContent = seconds;
+            
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const week = weekDays[now.getDay()];
+            
+            document.getElementById('date').textContent = `${year}年${month}月${day}日`;
+            document.getElementById('week').textContent = week;
+        }
+
+        // 初始化动画选择器
+        function initAnimationSelector() {
+            const selector = document.getElementById('animation-selector');
+            selector.innerHTML = '';
+            
+            animations.forEach((animation, index) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'animation-thumb';
+                if (index === currentAnimation) thumb.classList.add('active');
+                
+                const content = document.createElement('div');
+                content.className = 'thumb-content';
+                content.textContent = animation.name;
+                content.style.textShadow = `0 0 10px ${animation.color}, 0 0 20px ${animation.color}`;
+                
+                thumb.appendChild(content);
+                thumb.addEventListener('click', () => {
+                    switchAnimation(index);
+                    saveAnimationMemory(index);
+                    resetSelectorTimer();
+                });
+                
+                selector.appendChild(thumb);
+            });
+        }
+
+        // 切换动画背景
+        function switchAnimation(index) {
+            clearAnimations();
+            
+            currentAnimation = index;
+            
+            document.querySelectorAll('.animation-thumb').forEach((thumb, i) => {
+                if (i === index) {
+                    thumb.classList.add('active');
+                } else {
+                    thumb.classList.remove('active');
+                }
+            });
+            
+            document.querySelectorAll('.bg-animation').forEach(bg => {
+                bg.classList.remove('active-bg');
+            });
+            
+            const selectedBg = document.getElementById(animations[index].id);
+            if (selectedBg) {
+                selectedBg.classList.add('active-bg');
+                initAnimation(index);
+            }
+        }
+
+        // 初始化动画
+        function initAnimation(index) {
+            if (index >= 0 && index < animations.length && animations[index].create) {
+                animations[index].create();
+            }
+        }
+
+        // 清除动画
+        function clearAnimations() {
+            animationIntervals.forEach(interval => {
+                clearInterval(interval);
+                if (typeof interval === 'number') {
+                    cancelAnimationFrame(interval);
+                }
+            });
+            animationIntervals = [];
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            animationElements.forEach(element => {
+                if (element && element.parentNode) {
+                    element.parentNode.removeChild(element);
+                }
+            });
+            animationElements = [];
+        }
+
+        // 城市烟花动画 - 修复底部起始位置
+        function createCityFireworks() {
+            const container = document.getElementById('city-fireworks');
+            if (!container) return;
+            
+            const fireworkCount = isLowPerformanceMode ? 1 : 3;
+            const explosionCount = isLowPerformanceMode ? 20 : 40;
+            
+            const interval = setInterval(() => {
+                const count = Math.floor(Math.random() * fireworkCount) + 1;
+                
+                for (let j = 0; j < count; j++) {
+                    const trail = document.createElement('div');
+                    trail.className = 'firework-trail';
+                    
+                    const startX = Math.random() * 80 + 10;
+                    const endX = Math.random() * 60 + 20;
+                    const endY = Math.random() * 40 + 10;
+                    const color = `hsl(${Math.random() * 60 + 300}, 100%, 70%)`;
+                    
+                    // 关键修复：从屏幕底部外开始
+                    trail.style.left = `${startX}%`;
+                    trail.style.top = '100%';
+                    trail.style.width = '0px';
+                    trail.style.backgroundColor = color;
+                    trail.style.boxShadow = `0 0 15px ${color}`;
+                    trail.style.transform = `rotate(${Math.atan2(endY - 100, endX - startX)}rad)`;
+                    
+                    container.appendChild(trail);
+                    animationElements.push(trail);
+                    
+                    let width = 0;
+                    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - 100, 2));
+                    const speed = 1.5;
+                    
+                    const riseInterval = setInterval(() => {
+                        width += speed;
+                        trail.style.width = `${width}%`;
+                        
+                        if (width >= distance) {
+                            clearInterval(riseInterval);
+                            
+                            if (trail.parentNode) {
+                                trail.parentNode.removeChild(trail);
+                            }
+                            
+                            for (let i = 0; i < explosionCount; i++) {
+                                const explosion = document.createElement('div');
+                                explosion.className = 'firework-explosion';
+                                explosion.style.left = `${endX}%`;
+                                explosion.style.top = `${endY}%`;
+                                explosion.style.width = '0px';
+                                explosion.style.height = '0px';
+                                explosion.style.backgroundColor = color;
+                                explosion.style.boxShadow = `0 0 40px ${color}`;
+                                container.appendChild(explosion);
+                                animationElements.push(explosion);
+                                
+                                let size = 0;
+                                const maxSize = Math.random() * 60 + 25;
+                                const expSpeed = Math.random() * 2 + 1;
+                                const angle = (i / explosionCount) * Math.PI * 2;
+                                const expDistance = Math.random() * 70 + 25;
+                                
+                                const expInterval = setInterval(() => {
+                                    size += expSpeed;
+                                    explosion.style.width = `${size}px`;
+                                    explosion.style.height = `${size}px`;
+                                    explosion.style.marginLeft = `-${size/2}px`;
+                                    explosion.style.marginTop = `-${size/2}px`;
+                                    explosion.style.opacity = 1 - (size / maxSize);
+                                    
+                                    if (size < maxSize * 0.6) {
+                                        explosion.style.left = `${endX + Math.cos(angle) * expDistance * (size / maxSize)}%`;
+                                        explosion.style.top = `${endY + Math.sin(angle) * expDistance * (size / maxSize)}%`;
+                                    }
+                                    
+                                    if (size >= maxSize) {
+                                        clearInterval(expInterval);
+                                        if (explosion.parentNode) {
+                                            explosion.parentNode.removeChild(explosion);
+                                        }
+                                    }
+                                }, 25);
+                                
+                                animationIntervals.push(expInterval);
+                            }
+                        }
+                    }, 25);
+                    
+                    animationIntervals.push(riseInterval);
+                }
+            }, isLowPerformanceMode ? 1200 : 800);
+            
+            animationIntervals.push(interval);
+        }
+
+        // 星际穿越动画
+        function createSpaceTravel() {
+            const container = document.getElementById('space-travel');
+            if (!container) return;
+            
+            const stars = [];
+            const starCount = isLowPerformanceMode ? 200 : 400;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'space-particle';
+                
+                const depth = Math.random() * 0.8 + 0.2;
+                const x = Math.random() * 120 - 10;
+                const y = 110 + Math.random() * 30;
+                const size = depth * (isLowPerformanceMode ? 2 : 3);
+                
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.opacity = depth * 0.8;
+                star.style.filter = `blur(${Math.random() * 1.5}px)`;
+                
+                container.appendChild(star);
+                animationElements.push(star);
+                
+                stars.push({
+                    element: star,
+                    x: x,
+                    y: y,
+                    speed: depth * 2.5,
+                    depth: depth,
+                    flicker: Math.random() * Math.PI * 2,
+                    brightness: 0.6 + Math.random() * 0.4,
+                    drift: (Math.random() - 0.5) * 0.1
+                });
+            }
+            
+            let lastTime = 0;
+            
+            function animateStars(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                stars.forEach(star => {
+                    star.y -= star.speed * (deltaTime / 30);
+                    star.x += star.drift * (deltaTime / 30);
+                    
+                    star.flicker += 0.05 * (deltaTime / 16);
+                    const flickerIntensity = 0.7 + Math.sin(star.flicker) * 0.3;
+                    star.element.style.opacity = star.depth * star.brightness * flickerIntensity;
+                    
+                    if (star.y < -10) {
+                        star.y = 120;
+                        star.x = Math.random() * 120 - 10;
+                        star.brightness = 0.6 + Math.random() * 0.4;
+                        star.drift = (Math.random() - 0.5) * 0.1;
+                    }
+                    
+                    if (star.x < -20) star.x = 120;
+                    if (star.x > 120) star.x = -20;
+                    
+                    star.element.style.left = `${star.x}%`;
+                    star.element.style.top = `${star.y}%`;
+                    
+                    const scale = 0.2 + (110 - star.y) / 110 * 1.5 * star.depth;
+                    star.element.style.transform = `scale(${Math.max(0.2, scale)})`;
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateStars);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateStars);
+        }
+
+        // 樱花飘落动画
+        function createCherryBlossom() {
+            const container = document.getElementById('cherry-blossom');
+            if (!container) return;
+            
+            const sakuras = [];
+            const sakuraCount = isLowPerformanceMode ? 60 : 120;
+            
+            for (let i = 0; i < sakuraCount; i++) {
+                const sakura = document.createElement('div');
+                sakura.className = 'sakura';
+                sakura.innerHTML = '❀';
+                sakura.style.left = `${Math.random() * 120}%`;
+                sakura.style.top = `${Math.random() * 120}%`;
+                sakura.style.opacity = Math.random() * 0.8 + 0.2;
+                sakura.style.transform = `rotate(${Math.random() * 360}deg)`;
+                sakura.style.fontSize = `${Math.random() * 10 + 12}px`;
+                sakura.style.color = `hsl(${Math.random() * 30 + 330}, 100%, 85%)`;
+                container.appendChild(sakura);
+                animationElements.push(sakura);
+                
+                sakuras.push({
+                    element: sakura,
+                    x: parseFloat(sakura.style.left),
+                    y: parseFloat(sakura.style.top),
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: Math.random() * 0.6 + 0.4,
+                    rotation: Math.random() * 360,
+                    rotateSpeed: (Math.random() - 0.5) * 0.8,
+                    wave: Math.random() * 0.8 - 0.4,
+                    waveOffset: Math.random() * Math.PI * 2
+                });
+            }
+            
+            let lastTime = 0;
+            
+            function animateSakura(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = currentTime - lastTime;
+                
+                if (deltaTime > 16) {
+                    sakuras.forEach(sakura => {
+                        sakura.x += (sakura.vx + Math.sin(currentTime * 0.001 + sakura.waveOffset) * sakura.wave) * (deltaTime / 16);
+                        sakura.y += sakura.vy * (deltaTime / 16);
+                        sakura.rotation += sakura.rotateSpeed * (deltaTime / 16);
+                        
+                        if (sakura.x < -10) sakura.x = 110;
+                        if (sakura.x > 110) sakura.x = -10;
+                        if (sakura.y > 110) {
+                            sakura.y = -10;
+                            sakura.x = Math.random() * 100;
+                        }
+                        
+                        sakura.element.style.left = `${sakura.x}%`;
+                        sakura.element.style.top = `${sakura.y}%`;
+                        sakura.element.style.transform = `rotate(${sakura.rotation}deg)`;
+                        
+                        const opacity = 0.4 + Math.sin(currentTime * 0.002 + sakura.waveOffset) * 0.3;
+                        sakura.element.style.opacity = Math.max(0.2, Math.min(0.9, opacity));
+                    });
+                    
+                    lastTime = currentTime;
+                }
+                
+                animationFrameId = requestAnimationFrame(animateSakura);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateSakura);
+        }
+
+        // 数字雨动画
+        function createMatrixRain() {
+            const container = document.getElementById('matrix-rain');
+            if (!container) return;
+            
+            const drops = [];
+            const splashes = [];
+            const digits = "0123456789";
+            const dropCount = isLowPerformanceMode ? 60 : 120;
+            
+            for (let i = 0; i < dropCount; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'matrix-digit';
+                
+                const x = Math.random() * 100;
+                const speed = Math.random() * 8 + 6;
+                const fontSize = Math.random() * 20 + 14;
+                const char = digits[Math.floor(Math.random() * digits.length)];
+                
+                drop.textContent = char;
+                drop.style.left = `${x}%`;
+                drop.style.top = `${Math.random() * 20 - 30}%`;
+                drop.style.fontSize = `${fontSize}px`;
+                drop.style.opacity = '0.9';
+                
+                container.appendChild(drop);
+                animationElements.push(drop);
+                
+                drops.push({
+                    element: drop,
+                    x: x,
+                    y: parseFloat(drop.style.top),
+                    speed: speed,
+                    fontSize: fontSize,
+                    char: char,
+                    splashCreated: false
+                });
+            }
+            
+            let lastTime = 0;
+            
+            function animateMatrix(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                drops.forEach(drop => {
+                    drop.y += drop.speed * 0.15 * (deltaTime / 25);
+                    
+                    if (drop.y > 95 && !drop.splashCreated) {
+                        createSplash(drop.x, drop.y, container);
+                        drop.splashCreated = true;
+                        
+                        drop.y = Math.random() * 20 - 30;
+                        drop.x = Math.random() * 100;
+                        drop.speed = Math.random() * 8 + 6;
+                        drop.fontSize = Math.random() * 20 + 14;
+                        drop.char = digits[Math.floor(Math.random() * digits.length)];
+                        drop.splashCreated = false;
+                    } else if (drop.y > 100) {
+                        drop.y = Math.random() * 20 - 30;
+                        drop.x = Math.random() * 100;
+                        drop.speed = Math.random() * 8 + 6;
+                        drop.fontSize = Math.random() * 20 + 14;
+                        drop.char = digits[Math.floor(Math.random() * digits.length)];
+                        drop.splashCreated = false;
+                    }
+                    
+                    drop.element.style.left = `${drop.x}%`;
+                    drop.element.style.top = `${drop.y}%`;
+                    drop.element.style.fontSize = `${drop.fontSize}px`;
+                    drop.element.textContent = drop.char;
+                    
+                    const opacity = 0.7 + (drop.speed / 14) * 0.3;
+                    drop.element.style.opacity = opacity.toString();
+                });
+                
+                splashes.forEach((splash, index) => {
+                    splash.time++;
+                    if (splash.time > 40) {
+                        if (splash.element.parentNode) {
+                            splash.element.parentNode.removeChild(splash.element);
+                        }
+                        splashes.splice(index, 1);
+                    }
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateMatrix);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateMatrix);
+            
+            function createSplash(x, y, container) {
+                const splashCount = isLowPerformanceMode ? 6 : 12;
+                for (let i = 0; i < splashCount; i++) {
+                    const splash = document.createElement('div');
+                    splash.className = 'matrix-splash';
+                    
+                    const angle = (i / splashCount) * Math.PI * 2;
+                    const distance = Math.random() * 40 + 15;
+                    const size = Math.random() * 10 + 6;
+                    const char = digits[Math.floor(Math.random() * digits.length)];
+                    
+                    splash.textContent = char;
+                    splash.style.left = `${x}%`;
+                    splash.style.top = `${y}%`;
+                    splash.style.fontSize = `${size}px`;
+                    splash.style.opacity = '0.9';
+                    
+                    container.appendChild(splash);
+                    animationElements.push(splash);
+                    
+                    splashes.push({
+                        element: splash,
+                        startX: x,
+                        startY: y,
+                        angle: angle,
+                        distance: distance,
+                        time: 0,
+                        speed: Math.random() * 3 + 1.5
+                    });
+                }
+                
+                const splashInterval = setInterval(() => {
+                    let allDone = true;
+                    
+                    splashes.forEach(splash => {
+                        if (splash.time < 40) {
+                            allDone = false;
+                            splash.time++;
+                            
+                            const progress = splash.time / 40;
+                            const currentDistance = splash.distance * progress;
+                            const currentX = splash.startX + Math.cos(splash.angle) * currentDistance;
+                            const currentY = splash.startY + Math.sin(splash.angle) * currentDistance;
+                            
+                            splash.element.style.left = `${currentX}%`;
+                            splash.element.style.top = `${currentY}%`;
+                            splash.element.style.opacity = (0.9 * (1 - progress)).toString();
+                            splash.element.style.transform = `scale(${1 + progress * 1.5})`;
+                        }
+                    });
+                    
+                    if (allDone) {
+                        clearInterval(splashInterval);
+                    }
+                }, 25);
+                
+                animationIntervals.push(splashInterval);
+            }
+        }
+
+        // 数据流动画
+        function createDataStream() {
+            const container = document.getElementById('data-stream');
+            if (!container) return;
+            
+            const nodes = [];
+            const connections = [];
+            const bits = [];
+            
+            const nodeCount = isLowPerformanceMode ? 30 : 60;
+            const connectionCount = isLowPerformanceMode ? 20 : 40;
+            const bitCount = isLowPerformanceMode ? 50 : 100;
+            
+            for (let i = 0; i < nodeCount; i++) {
+                const node = document.createElement('div');
+                node.className = 'data-node';
+                
+                const x = Math.random() * 90 + 5;
+                const y = Math.random() * 90 + 5;
+                
+                node.style.left = `${x}%`;
+                node.style.top = `${y}%`;
+                container.appendChild(node);
+                animationElements.push(node);
+                
+                nodes.push({
+                    element: node,
+                    x: x,
+                    y: y,
+                    pulse: Math.random() * Math.PI * 2,
+                    pulseSpeed: Math.random() * 0.08 + 0.03
+                });
+            }
+            
+            for (let i = 0; i < connectionCount; i++) {
+                const connection = document.createElement('div');
+                connection.className = 'data-connection';
+                container.appendChild(connection);
+                animationElements.push(connection);
+                connections.push(connection);
+            }
+            
+            for (let i = 0; i < bitCount; i++) {
+                const bit = document.createElement('div');
+                bit.className = 'data-bit';
+                bit.textContent = Math.random() > 0.5 ? '1' : '0';
+                bit.style.fontSize = `${Math.random() * 6 + 14}px`;
+                container.appendChild(bit);
+                animationElements.push(bit);
+                
+                bits.push({
+                    element: bit,
+                    source: Math.floor(Math.random() * nodes.length),
+                    target: Math.floor(Math.random() * nodes.length),
+                    progress: Math.random(),
+                    speed: Math.random() * 0.03 + 0.015,
+                    char: bit.textContent,
+                    size: parseFloat(bit.style.fontSize)
+                });
+            }
+            
+            let lastTime = 0;
+            let frameCount = 0;
+            
+            function animateDataStream(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                frameCount++;
+                const time = frameCount * 0.02;
+                
+                nodes.forEach((node, index) => {
+                    node.pulse += node.pulseSpeed * (deltaTime / 16);
+                    const pulse = 1 + Math.sin(node.pulse) * 0.4;
+                    const size = 10 * pulse;
+                    const glow = size * 3;
+                    
+                    node.element.style.width = `${size}px`;
+                    node.element.style.height = `${size}px`;
+                    node.element.style.boxShadow = `0 0 ${glow}px #00f7ff, 0 0 ${glow * 1.5}px rgba(0, 247, 255, 0.5)`;
+                    
+                    node.x += Math.sin(time * 0.8 + index) * 0.08 * (deltaTime / 16);
+                    node.y += Math.cos(time * 0.8 + index) * 0.08 * (deltaTime / 16);
+                    
+                    if (node.x < 5) node.x = 5;
+                    if (node.x > 95) node.x = 95;
+                    if (node.y < 5) node.y = 5;
+                    if (node.y > 95) node.y = 95;
+                    
+                    node.element.style.left = `${node.x}%`;
+                    node.element.style.top = `${node.y}%`;
+                });
+                
+                connections.forEach((connection, index) => {
+                    const sourceIndex = (index * 2) % nodes.length;
+                    const targetIndex = (index * 2 + 5) % nodes.length;
+                    
+                    const source = nodes[sourceIndex];
+                    const target = nodes[targetIndex];
+                    
+                    if (source && target) {
+                        const dx = target.x - source.x;
+                        const dy = target.y - source.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 70) {
+                            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                            
+                            connection.style.left = `${source.x}%`;
+                            connection.style.top = `${source.y}%`;
+                            connection.style.width = `${distance}%`;
+                            connection.style.transform = `rotate(${angle}deg)`;
+                            
+                            const pulse = Math.sin(time * 5 + index) * 0.3 + 0.7;
+                            connection.style.opacity = (0.5 * pulse).toString();
+                            connection.style.height = `${1 + Math.sin(time * 8 + index) * 0.5}px`;
+                        } else {
+                            connection.style.opacity = '0';
+                        }
+                    }
+                });
+                
+                bits.forEach(bit => {
+                    const source = nodes[bit.source];
+                    const target = nodes[bit.target];
+                    
+                    if (source && target) {
+                        bit.progress += bit.speed * (deltaTime / 16);
+                        if (bit.progress > 1) {
+                            bit.progress = 0;
+                            bit.source = Math.floor(Math.random() * nodes.length);
+                            bit.target = Math.floor(Math.random() * nodes.length);
+                            bit.speed = Math.random() * 0.03 + 0.015;
+                            bit.char = Math.random() > 0.5 ? '1' : '0';
+                            bit.element.textContent = bit.char;
+                        }
+                        
+                        const x = source.x + (target.x - source.x) * bit.progress;
+                        const y = source.y + (target.y - source.y) * bit.progress;
+                        
+                        bit.element.style.left = `${x}%`;
+                        bit.element.style.top = `${y}%`;
+                        
+                        const pulse = 0.7 + Math.sin(time * 12 + bit.progress * 15) * 0.3;
+                        bit.element.style.opacity = pulse.toString();
+                        
+                        const sizePulse = 1 + Math.sin(time * 10 + bit.progress * 12) * 0.3;
+                        bit.element.style.fontSize = `${bit.size * sizePulse}px`;
+                    }
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateDataStream);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateDataStream);
+        }
+
+        // 几何线条动画
+        function createGeometricLines() {
+            const container = document.getElementById('geometric-lines');
+            if (!container) return;
+            
+            const points = [];
+            const lines = [];
+            const colors = ['#ff00ff', '#00f7ff', '#ffff00', '#ff9900', '#aa00ff', '#00ff80', '#ff6600'];
+            
+            const pointCount = isLowPerformanceMode ? 40 : 80;
+            const lineCount = isLowPerformanceMode ? 60 : 120;
+            
+            for (let i = 0; i < pointCount; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'geo-dot';
+                dot.style.left = `${Math.random() * 100}%`;
+                dot.style.top = `${Math.random() * 100}%`;
+                dot.style.color = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(dot);
+                animationElements.push(dot);
+                
+                points.push({
+                    element: dot,
+                    x: parseFloat(dot.style.left),
+                    y: parseFloat(dot.style.top),
+                    vx: (Math.random() - 0.5) * 0.6,
+                    vy: (Math.random() - 0.5) * 0.6,
+                    color: dot.style.color,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    size: 6 + Math.random() * 4
+                });
+            }
+            
+            for (let i = 0; i < lineCount; i++) {
+                const line = document.createElement('div');
+                line.className = 'geo-line';
+                line.style.height = '1.5px';
+                container.appendChild(line);
+                animationElements.push(line);
+                lines.push(line);
+            }
+            
+            let lastTime = 0;
+            let frameCount = 0;
+            
+            function animateGeometricLines(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                frameCount++;
+                const time = frameCount * 0.015;
+                
+                points.forEach((point, index) => {
+                    point.x += (point.vx + Math.sin(time * 3 + point.waveOffset + index * 0.1) * 0.3) * (deltaTime / 16);
+                    point.y += (point.vy + Math.cos(time * 3 + point.waveOffset + index * 0.1) * 0.3) * (deltaTime / 16);
+                    
+                    if (point.x < 0 || point.x > 100) {
+                        point.vx *= -1;
+                        point.x = Math.max(0, Math.min(100, point.x));
+                    }
+                    if (point.y < 0 || point.y > 100) {
+                        point.vy *= -1;
+                        point.y = Math.max(0, Math.min(100, point.y));
+                    }
+                    
+                    const pulse = 1 + Math.sin(time * 6 + point.waveOffset) * 0.5;
+                    const currentSize = point.size * pulse;
+                    
+                    point.element.style.left = `${point.x}%`;
+                    point.element.style.top = `${point.y}%`;
+                    point.element.style.width = `${currentSize}px`;
+                    point.element.style.height = `${currentSize}px`;
+                    point.element.style.boxShadow = `0 0 ${currentSize * 3}px ${point.color}`;
+                });
+                
+                lines.forEach((line, index) => {
+                    const p1 = points[index % points.length];
+                    const p2Index = (index + Math.floor(Math.sin(time * 2 + index * 0.1) * 5) + 5) % points.length;
+                    const p2 = points[p2Index];
+                    
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 40) {
+                        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        
+                        line.style.left = `${p1.x}%`;
+                        line.style.top = `${p1.y}%`;
+                        line.style.width = `${distance}%`;
+                        line.style.transform = `rotate(${angle}deg)`;
+                        line.style.color = p1.color;
+                        
+                        const lineOpacity = 0.5 + Math.sin(time * 8 + index * 0.3) * 0.4;
+                        line.style.opacity = Math.max(0.3, Math.min(0.7, lineOpacity));
+                        
+                        const linePulse = 1 + Math.sin(time * 10 + index * 0.5) * 0.3;
+                        line.style.height = `${1.5 * linePulse}px`;
+                    } else {
+                        line.style.opacity = '0';
+                    }
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateGeometricLines);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateGeometricLines);
+        }
+
+        // 丝带动画
+        function createRibbons() {
+            const container = document.getElementById('ribbons');
+            if (!container) return;
+            
+            const colors = [
+                'rgba(255, 0, 255, 0.8)',
+                'rgba(0, 247, 255, 0.8)',
+                'rgba(255, 255, 0, 0.8)',
+                'rgba(255, 140, 0, 0.8)',
+                'rgba(255, 0, 128, 0.8)',
+                'rgba(0, 255, 128, 0.8)',
+                'rgba(128, 0, 255, 0.8)'
+            ];
+            
+            const ribbons = [];
+            const ribbonCount = isLowPerformanceMode ? 20 : 40;
+            
+            for (let i = 0; i < ribbonCount; i++) {
+                const ribbon = document.createElement('div');
+                ribbon.className = 'ribbon';
+                
+                const width = Math.random() * 250 + 150;
+                const height = Math.random() * 20 + 8;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                ribbon.style.width = `${width}px`;
+                ribbon.style.height = `${height}px`;
+                
+                const gradientColor = color.replace('0.8', '0.5');
+                ribbon.style.background = `linear-gradient(90deg, 
+                    transparent 0%, 
+                    ${gradientColor} 15%, 
+                    ${color} 50%, 
+                    ${gradientColor} 85%, 
+                    transparent 100%)`;
+                
+                ribbon.style.borderRadius = `${height/2}px`;
+                container.appendChild(ribbon);
+                animationElements.push(ribbon);
+                
+                ribbons.push({
+                    element: ribbon,
+                    x: Math.random() * 130 - 15,
+                    y: Math.random() * 130 - 15,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    rotation: Math.random() * 360,
+                    rotateSpeed: (Math.random() - 0.5) * 0.5,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    color: color,
+                    width: width,
+                    height: height
+                });
+            }
+            
+            let lastTime = 0;
+            let frameCount = 0;
+            
+            function animateRibbons(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                frameCount++;
+                const time = frameCount * 0.01;
+                
+                ribbons.forEach((ribbon, index) => {
+                    const waveX = Math.sin(time * 0.015 + ribbon.waveOffset) * 40;
+                    const waveY = Math.cos(time * 0.02 + ribbon.waveOffset) * 30;
+                    
+                    ribbon.x += ribbon.vx * (deltaTime / 25);
+                    ribbon.y += ribbon.vy * (deltaTime / 25);
+                    ribbon.rotation += ribbon.rotateSpeed * (deltaTime / 16);
+                    
+                    if (ribbon.x < -40 || ribbon.x > 140) ribbon.vx *= -1;
+                    if (ribbon.y < -40 || ribbon.y > 140) ribbon.vy *= -1;
+                    
+                    const ribbonX = ribbon.x + waveX * 0.2;
+                    const ribbonY = ribbon.y + waveY * 0.2;
+                    
+                    const waveDeform = 1 + Math.sin(time * 0.04 + ribbon.waveOffset) * 0.6;
+                    const rotate = ribbon.rotation + Math.sin(time * 0.03 + ribbon.waveOffset) * 10;
+                    
+                    ribbon.element.style.left = `${ribbonX}%`;
+                    ribbon.element.style.top = `${ribbonY}%`;
+                    ribbon.element.style.transform = `
+                        rotate(${rotate}deg)
+                        scaleX(${waveDeform})
+                    `;
+                    
+                    const opacity = 0.7 + Math.sin(time * 0.008 + ribbon.waveOffset) * 0.3;
+                    ribbon.element.style.opacity = Math.max(0.5, Math.min(0.95, opacity));
+                    
+                    const hueShift = Math.sin(time * 0.01 + ribbon.waveOffset) * 20;
+                    ribbon.element.style.filter = `hue-rotate(${hueShift}deg) blur(0.8px)`;
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateRibbons);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateRibbons);
+        }
+
+        // 粒子旋转动画
+        function createParticleVortex() {
+            const container = document.getElementById('particle-vortex');
+            if (!container) return;
+            
+            const center = document.createElement('div');
+            center.className = 'vortex-center';
+            center.style.left = '50%';
+            center.style.top = '50%';
+            center.style.transform = 'translate(-50%, -50%)';
+            container.appendChild(center);
+            animationElements.push(center);
+            
+            const particles = [];
+            const colors = ['#ff00ff', '#00f7ff', '#ffff00', '#ff5500', '#00ff80', '#ff00aa', '#00aaff'];
+            const particleCount = isLowPerformanceMode ? 100 : 200;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'vortex-particle';
+                
+                const size = Math.random() * 5 + 3;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.background = color;
+                particle.style.boxShadow = `0 0 ${size * 4}px ${color}`;
+                
+                container.appendChild(particle);
+                animationElements.push(particle);
+                
+                particles.push({
+                    element: particle,
+                    radius: Math.random() * 50 + 15,
+                    angle: Math.random() * Math.PI * 2,
+                    speed: (Math.random() * 0.025 + 0.015) * (Math.random() > 0.5 ? 1 : -1),
+                    size: size,
+                    color: color,
+                    orbitOffset: Math.random() * Math.PI * 2,
+                    pulseOffset: Math.random() * Math.PI * 2
+                });
+            }
+            
+            let lastTime = 0;
+            let frameCount = 0;
+            
+            function animateVortex(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                frameCount++;
+                const time = frameCount * 0.01;
+                
+                const centerPulse = 20 + Math.sin(time * 2) * 8;
+                center.style.width = `${centerPulse}px`;
+                center.style.height = `${centerPulse}px`;
+                center.style.boxShadow = `0 0 ${50 + Math.sin(time * 3) * 15}px #ff00ff`;
+                
+                particles.forEach((particle, index) => {
+                    particle.angle += particle.speed * (deltaTime / 16);
+                    
+                    const radius = particle.radius + Math.sin(time * 0.4 + particle.orbitOffset) * 15;
+                    const x = 50 + Math.cos(particle.angle + time * 0.15) * radius;
+                    const y = 50 + Math.sin(particle.angle + time * 0.15) * radius;
+                    
+                    const pulse = 1 + Math.sin(time * 0.05 + particle.pulseOffset + index * 0.01) * 0.6;
+                    const currentSize = particle.size * pulse;
+                    
+                    particle.element.style.left = `${x}%`;
+                    particle.element.style.top = `${y}%`;
+                    particle.element.style.width = `${currentSize}px`;
+                    particle.element.style.height = `${currentSize}px`;
+                    particle.element.style.boxShadow = `0 0 ${currentSize * 4}px ${particle.color}`;
+                    
+                    const hueShift = Math.sin(time * 0.02 + index * 0.01) * 30;
+                    particle.element.style.filter = `hue-rotate(${hueShift}deg)`;
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateVortex);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateVortex);
+        }
+
+        // 梦幻光影动画
+        function createDreamLight() {
+            const container = document.getElementById('dream-light');
+            if (!container) return;
+            
+            const beams = [];
+            const colors = [
+                'rgba(255, 102, 204, 0.6)',
+                'rgba(102, 204, 255, 0.6)',
+                'rgba(204, 102, 255, 0.6)',
+                'rgba(255, 204, 102, 0.6)',
+                'rgba(102, 255, 204, 0.6)'
+            ];
+            
+            const beamCount = isLowPerformanceMode ? 4 : 8;
+            
+            for (let i = 0; i < beamCount; i++) {
+                const beam = document.createElement('div');
+                beam.className = 'light-beam';
+                
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 400 + 300;
+                
+                beam.style.width = `${size}px`;
+                beam.style.height = `${size}px`;
+                beam.style.background = `radial-gradient(circle, ${color}, transparent 70%)`;
+                beam.style.left = `${Math.random() * 100}%`;
+                beam.style.top = `${Math.random() * 100}%`;
+                beam.style.opacity = '0.6';
+                
+                container.appendChild(beam);
+                animationElements.push(beam);
+                
+                beams.push({
+                    element: beam,
+                    x: parseFloat(beam.style.left),
+                    y: parseFloat(beam.style.top),
+                    vx: (Math.random() - 0.5) * 0.1,
+                    vy: (Math.random() - 0.5) * 0.1,
+                    size: size,
+                    color: color,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    pulseOffset: Math.random() * Math.PI * 2,
+                    rotation: Math.random() * 360,
+                    rotateSpeed: (Math.random() - 0.5) * 0.2
+                });
+            }
+            
+            let lastTime = 0;
+            let frameCount = 0;
+            
+            function animateDreamLight(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                frameCount++;
+                const time = frameCount * 0.01;
+                
+                beams.forEach((beam, index) => {
+                    beam.x += (beam.vx + Math.sin(time * 0.02 + beam.waveOffset) * 0.05) * (deltaTime / 16);
+                    beam.y += (beam.vy + Math.cos(time * 0.025 + beam.waveOffset) * 0.05) * (deltaTime / 16);
+                    
+                    if (beam.x < -30 || beam.x > 130) beam.vx *= -1;
+                    if (beam.y < -30 || beam.y > 130) beam.vy *= -1;
+                    
+                    const sizePulse = 1 + Math.sin(time * 0.03 + beam.pulseOffset) * 0.3;
+                    const currentSize = beam.size * sizePulse;
+                    
+                    beam.element.style.left = `${beam.x}%`;
+                    beam.element.style.top = `${beam.y}%`;
+                    beam.element.style.width = `${currentSize}px`;
+                    beam.element.style.height = `${currentSize}px`;
+                    
+                    beam.rotation += beam.rotateSpeed * (deltaTime / 16);
+                    beam.element.style.transform = `translate(-50%, -50%) rotate(${beam.rotation}deg)`;
+                    
+                    const opacity = 0.5 + Math.sin(time * 0.04 + beam.waveOffset) * 0.3;
+                    beam.element.style.opacity = Math.max(0.3, Math.min(0.8, opacity)).toString();
+                    
+                    const hueShift = Math.sin(time * 0.015 + index * 0.5) * 30;
+                    beam.element.style.filter = `hue-rotate(${hueShift}deg) blur(${80 + Math.sin(time * 0.05) * 20}px)`;
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateDreamLight);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateDreamLight);
+        }
+
+        // 量子涟漪动画
+        function createQuantumRipple() {
+            const container = document.getElementById('quantum-ripple');
+            if (!container) return;
+            
+            const center = document.createElement('div');
+            center.className = 'ripple-center';
+            center.style.left = '50%';
+            center.style.top = '50%';
+            center.style.transform = 'translate(-50%, -50%)';
+            container.appendChild(center);
+            animationElements.push(center);
+            
+            const ripples = [];
+            const colors = ['#ff00ff', '#00f7ff', '#ffffff', '#ffff00', '#00ff80'];
+            
+            function createRipple() {
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple-circle';
+                
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 30 + 20;
+                const width = Math.random() * 3 + 1;
+                
+                ripple.style.width = `${size}px`;
+                ripple.style.height = `${size}px`;
+                ripple.style.borderColor = color;
+                ripple.style.color = color;
+                ripple.style.left = `${Math.random() * 90 + 5}%`;
+                ripple.style.top = `${Math.random() * 90 + 5}%`;
+                ripple.style.borderWidth = `${width}px`;
+                ripple.style.boxShadow = `0 0 ${width * 15}px ${color}`;
+                
+                container.appendChild(ripple);
+                animationElements.push(ripple);
+                
+                ripples.push({
+                    element: ripple,
+                    x: parseFloat(ripple.style.left),
+                    y: parseFloat(ripple.style.top),
+                    size: size,
+                    maxSize: Math.random() * 300 + 150,
+                    speed: Math.random() * 0.8 + 0.3,
+                    opacity: 1,
+                    color: color,
+                    life: 0,
+                    maxLife: Math.random() * 100 + 150,
+                    waveOffset: Math.random() * Math.PI * 2,
+                    pulse: Math.random() * Math.PI * 2
+                });
+            }
+            
+            const initialRippleCount = isLowPerformanceMode ? 3 : 5;
+            for (let i = 0; i < initialRippleCount; i++) {
+                createRipple();
+            }
+            
+            const rippleInterval = setInterval(() => {
+                if (ripples.length < (isLowPerformanceMode ? 10 : 20)) {
+                    createRipple();
+                }
+            }, isLowPerformanceMode ? 1200 : 800);
+            
+            animationIntervals.push(rippleInterval);
+            
+            let lastTime = 0;
+            let frameCount = 0;
+            
+            function animateRipples(currentTime) {
+                if (!lastTime) lastTime = currentTime;
+                const deltaTime = Math.min(currentTime - lastTime, 100);
+                
+                frameCount++;
+                const time = frameCount * 0.01;
+                
+                const centerPulse = 1 + Math.sin(time * 2) * 0.3;
+                center.style.transform = `translate(-50%, -50%) scale(${centerPulse})`;
+                
+                ripples.forEach((ripple, index) => {
+                    ripple.life += (deltaTime / 16);
+                    ripple.size += ripple.speed * (deltaTime / 16);
+                    
+                    const waveX = Math.sin(time * 0.8 + ripple.waveOffset) * 10;
+                    const waveY = Math.cos(time * 0.7 + ripple.waveOffset) * 10;
+                    
+                    ripple.pulse += 0.05;
+                    const pulse = 1 + Math.sin(ripple.pulse) * 0.2;
+                    
+                    const currentX = ripple.x + waveX * (ripple.size / ripple.maxSize);
+                    const currentY = ripple.y + waveY * (ripple.size / ripple.maxSize);
+                    const currentSize = ripple.size * pulse;
+                    
+                    ripple.element.style.left = `${currentX}%`;
+                    ripple.element.style.top = `${currentY}%`;
+                    ripple.element.style.width = `${currentSize}px`;
+                    ripple.element.style.height = `${currentSize}px`;
+                    ripple.element.style.transform = `translate(-50%, -50%)`;
+                    
+                    const lifeRatio = ripple.life / ripple.maxLife;
+                    ripple.opacity = 1 - lifeRatio;
+                    ripple.element.style.opacity = ripple.opacity.toString();
+                    
+                    const hueShift = Math.sin(time * 0.5 + index * 0.1) * 60;
+                    ripple.element.style.filter = `hue-rotate(${hueShift}deg) blur(${1 + lifeRatio * 3}px)`;
+                    
+                    if (ripple.life > ripple.maxLife) {
+                        ripple.life = 0;
+                        ripple.size = Math.random() * 30 + 20;
+                        ripple.x = Math.random() * 90 + 5;
+                        ripple.y = Math.random() * 90 + 5;
+                        ripple.maxSize = Math.random() * 300 + 150;
+                        ripple.speed = Math.random() * 0.8 + 0.3;
+                        ripple.maxLife = Math.random() * 100 + 150;
+                        ripple.waveOffset = Math.random() * Math.PI * 2;
+                        
+                        const newColor = colors[Math.floor(Math.random() * colors.length)];
+                        ripple.color = newColor;
+                        ripple.element.style.borderColor = newColor;
+                        ripple.element.style.color = newColor;
+                        ripple.element.style.boxShadow = `0 0 ${Math.random() * 3 + 1 * 15}px ${newColor}`;
+                    }
+                });
+                
+                lastTime = currentTime;
+                animationFrameId = requestAnimationFrame(animateRipples);
+            }
+            
+            animationFrameId = requestAnimationFrame(animateRipples);
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            // 时间点击事件
+            document.getElementById('time-container').addEventListener('click', speakTime);
+            
+            // 动画按钮
+            document.getElementById('animation-btn').addEventListener('click', () => {
+                const selector = document.getElementById('animation-selector');
+                if (selector.classList.contains('show')) {
+                    selector.classList.remove('show');
+                } else {
+                    selector.classList.add('show');
+                    resetSelectorTimer();
+                }
+            });
+            
+            // 挂机按钮
+            document.getElementById('hangup-btn').addEventListener('click', () => {
+                document.getElementById('hangup-modal').style.display = 'flex';
+                document.getElementById('hangup-password').value = '';
+                document.getElementById('hangup-password').focus();
+                
+                const storedMessage = localStorage.getItem('hangupMessage') || '';
+                document.getElementById('hangup-message').value = storedMessage;
+                updateCharCounter();
+                
+                document.querySelectorAll('input[name="quick-option"]').forEach(radio => {
+                    radio.checked = false;
+                });
+            });
+            
+            // 解锁按钮
+            document.getElementById('unlock-btn').addEventListener('click', () => {
+                if (!isShowingUnlockInput) {
+                    document.getElementById('unlock-input-group').style.display = 'flex';
+                    document.getElementById('unlock-password').focus();
+                    document.getElementById('unlock-btn').style.display = 'none';
+                    isShowingUnlockInput = true;
+                }
+            });
+            
+            // 取消解锁按钮
+            document.getElementById('cancel-unlock-btn').addEventListener('click', () => {
+                document.getElementById('unlock-input-group').style.display = 'none';
+                document.getElementById('unlock-error').style.display = 'none';
+                document.getElementById('unlock-password').value = '';
+                document.getElementById('unlock-btn').style.display = 'block';
+                isShowingUnlockInput = false;
+            });
+            
+            // 确认解锁
+            document.getElementById('confirm-unlock').addEventListener('click', confirmUnlock);
+            
+            // 关闭弹窗
+            document.getElementById('close-hangup-modal').addEventListener('click', () => {
+                document.getElementById('hangup-modal').style.display = 'none';
+            });
+            
+            // 取消挂机
+            document.getElementById('cancel-hangup').addEventListener('click', () => {
+                document.getElementById('hangup-modal').style.display = 'none';
+            });
+            
+            // 开始挂机
+            document.getElementById('start-hangup').addEventListener('click', startHangup);
+            
+            // 留言输入框字数计数
+            document.getElementById('hangup-message').addEventListener('input', updateCharCounter);
+            
+            // 快捷选项
+            document.querySelectorAll('input[name="quick-option"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.getElementById('hangup-message').value = this.value;
+                        updateCharCounter();
+                    }
+                });
+            });
+            
+            // 限制密码输入
+            document.getElementById('hangup-password').addEventListener('keydown', restrictPasswordInput);
+            document.getElementById('unlock-password').addEventListener('keydown', restrictPasswordInput);
+            
+            // 解锁密码输入框回车键
+            document.getElementById('unlock-password').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmUnlock();
+                }
+            });
+            
+            // 防止退出全屏
+            document.addEventListener('keydown', (e) => {
+                if (isLocked) {
+                    const key = e.key.toLowerCase();
+                    const isNumber = key >= '0' && key <= '9';
+                    const isLetter = key >= 'a' && key <= 'z';
+                    
+                    if (!isNumber && !isLetter) {
+                        if (['escape', 'f11', 'f1', 'f4', 'tab'].includes(key)) {
+                            e.preventDefault();
+                        }
+                    }
+                }
+            }, true);
+            
+            // 防止右键菜单
+            document.addEventListener('contextmenu', (e) => {
+                if (isLocked) {
+                    e.preventDefault();
+                }
+            });
+            
+            // 点击其他地方隐藏动画选择器
+            document.addEventListener('click', (e) => {
+                const selector = document.getElementById('animation-selector');
+                const animationBtn = document.getElementById('animation-btn');
+                
+                if (selector.classList.contains('show') && 
+                    !selector.contains(e.target) && 
+                    !animationBtn.contains(e.target)) {
+                    selector.classList.remove('show');
+                }
+            });
+        }
+
+        // 设置动画选择器自动隐藏（15秒）
+        function setupSelectorAutoHide() {
+            const selector = document.getElementById('animation-selector');
+            selector.addEventListener('mouseenter', () => {
+                resetSelectorTimer();
+            });
+            
+            selector.addEventListener('mouseleave', () => {
+                resetSelectorTimer();
+            });
+        }
+
+        // 重置选择器隐藏定时器（15秒）
+        function resetSelectorTimer() {
+            if (hideSelectorTimeout) {
+                clearTimeout(hideSelectorTimeout);
+            }
+            
+            hideSelectorTimeout = setTimeout(() => {
+                const selector = document.getElementById('animation-selector');
+                selector.classList.remove('show');
+            }, 15000);
+        }
+
+        // 限制密码输入
+        function restrictPasswordInput(e) {
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+            
+            const allowedSpecialKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
+            if (allowedSpecialKeys.includes(e.key)) return;
+            
+            const key = e.key.toLowerCase();
+            const isNumber = key >= '0' && key <= '9';
+            const isLetter = key >= 'a' && key <= 'z';
+            
+            if (!isNumber && !isLetter) {
+                e.preventDefault();
+            }
+        }
+
+        // 更新字符计数器
+        function updateCharCounter() {
+            const input = document.getElementById('hangup-message');
+            const counter = document.getElementById('char-counter');
+            const length = input.value.length;
+            const maxLength = 30;
+            
+            counter.textContent = `${length}/${maxLength}`;
+            
+            counter.className = 'char-counter';
+            if (length > maxLength * 0.8) {
+                counter.classList.add('warning');
+            }
+            if (length > maxLength) {
+                counter.classList.add('error');
+                input.value = input.value.substring(0, maxLength);
+                counter.textContent = `${maxLength}/${maxLength}`;
+            }
+        }
+
+        // 语音播报
+        function speakTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const timeText = `现在是北京时间，${hours}点${minutes}分`;
+            speak(timeText);
+        }
+
+        function speakDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const week = weekDays[now.getDay()];
+            const dateText = `今天是${year}年${month}月${day}日，${week}`;
+            speak(dateText);
+        }
+
+        function speakAwayMessage() {
+            if (hangupMessage && hangupMessage.trim() !== '') {
+                const messageText = `机主留言说：${hangupMessage}`;
+                speak(messageText);
+            }
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 1.0;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // 开始挂机
+        function startHangup() {
+            const password = document.getElementById('hangup-password').value.trim();
+            const message = document.getElementById('hangup-message').value.trim();
+            
+            if (!password || password.length < 4 || password.length > 8) {
+                alert('请输入4-8位数字或字母密码');
+                document.getElementById('hangup-password').focus();
+                return;
+            }
+            
+            const passwordRegex = /^[a-zA-Z0-9]+$/;
+            if (!passwordRegex.test(password)) {
+                alert('密码只能包含数字和字母');
+                document.getElementById('hangup-password').focus();
+                return;
+            }
+            
+            hangupPassword = password.toLowerCase();
+            hangupMessage = message;
+            
+            document.getElementById('hangup-modal').style.display = 'none';
+            document.getElementById('hangup-password').value = '';
+            
+            lockScreen();
+            
+            localStorage.setItem('hangupPassword', hangupPassword);
+            localStorage.setItem('hangupMessage', hangupMessage);
+            localStorage.setItem('isLocked', 'true');
+        }
+
+        // 锁定屏幕
+        function lockScreen() {
+            isLocked = true;
+            isShowingUnlockInput = false;
+            
+            isLowPerformanceMode = true;
+            
+            document.getElementById('hangup-btn').style.display = 'none';
+            document.getElementById('animation-btn').style.display = 'none';
+            
+            document.getElementById('unlock-section').style.display = 'flex';
+            
+            document.getElementById('animation-selector').classList.remove('show');
+            
+            const awayMessage = document.getElementById('away-message');
+            if (hangupMessage && hangupMessage.trim() !== '') {
+                awayMessage.textContent = hangupMessage;
+                awayMessage.classList.add('show');
+            } else {
+                awayMessage.classList.remove('show');
+            }
+            
+            document.getElementById('unlock-btn').style.display = 'block';
+            document.getElementById('unlock-btn').textContent = '挂机中，点我解锁！';
+            document.getElementById('unlock-btn').classList.add('locked');
+            
+            document.getElementById('unlock-input-group').style.display = 'none';
+            document.getElementById('unlock-error').style.display = 'none';
+            document.getElementById('unlock-password').value = '';
+            
+            // 重新初始化动画（使用低性能模式）
+            clearAnimations();
+            initAnimation(currentAnimation);
+            
+            // 全屏前先停止所有可能的动画
+            setTimeout(() => {
+                enterFullscreen();
+                // 全屏后重新渲染UI
+                setTimeout(() => {
+                    document.body.style.overflow = 'hidden';
+                    document.documentElement.style.overflow = 'hidden';
+                }, 100);
+            }, 100);
+            
+            document.body.classList.add('locked');
+        }
+
+        // 确认解锁
+        function confirmUnlock() {
+            const inputPassword = document.getElementById('unlock-password').value.trim().toLowerCase();
+            const errorElement = document.getElementById('unlock-error');
+            
+            if (inputPassword === hangupPassword) {
+                unlockScreen();
+                errorElement.style.display = 'none';
+                document.getElementById('unlock-password').value = '';
+                document.getElementById('unlock-input-group').style.display = 'none';
+                document.getElementById('unlock-btn').style.display = 'block';
+                isShowingUnlockInput = false;
+            } else {
+                errorElement.style.display = 'block';
+                document.getElementById('unlock-password').value = '';
+                document.getElementById('unlock-password').focus();
+                
+                const unlockSection = document.getElementById('unlock-section');
+                unlockSection.style.transform = 'translateX(10px)';
+                setTimeout(() => unlockSection.style.transform = 'translateX(-10px)', 100);
+                setTimeout(() => unlockSection.style.transform = 'translateX(0)', 200);
+            }
+        }
+
+        // 解锁屏幕
+        function unlockScreen() {
+            isLocked = false;
+            isShowingUnlockInput = false;
+            
+            isLowPerformanceMode = false;
+            
+            document.getElementById('hangup-btn').style.display = 'block';
+            document.getElementById('animation-btn').style.display = 'flex';
+            
+            document.getElementById('unlock-section').style.display = 'none';
+            
+            document.getElementById('away-message').classList.remove('show');
+            
+            const selector = document.getElementById('animation-selector');
+            selector.style.display = '';
+            
+            clearAnimations();
+            initAnimation(currentAnimation);
+            
+            exitFullscreen();
+            document.body.classList.remove('locked');
+            
+            localStorage.removeItem('hangupPassword');
+            localStorage.removeItem('hangupMessage');
+            localStorage.removeItem('isLocked');
+        }
+
+        // 检查锁定状态
+        function checkLockState() {
+            const storedLocked = localStorage.getItem('isLocked');
+            if (storedLocked === 'true') {
+                const storedPassword = localStorage.getItem('hangupPassword');
+                const storedMessage = localStorage.getItem('hangupMessage');
+                if (storedPassword) {
+                    hangupPassword = storedPassword;
+                    hangupMessage = storedMessage || '';
+                    lockScreen();
+                }
+            }
+        }
+
+        // 全屏功能
+        function enterFullscreen() {
+            const elem = document.documentElement;
+            try {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            } catch (err) {
+                console.log("全屏模式失败:", err);
+            }
+        }
+
+        function exitFullscreen() {
+            try {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            } catch (err) {
+                console.log("退出全屏失败:", err);
+            }
+        }
+
+        // 页面加载完成
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
